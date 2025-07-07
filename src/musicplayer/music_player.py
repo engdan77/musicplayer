@@ -104,7 +104,7 @@ class Track:
     def rating(self, rating_email: bytes = b"no@email"):
         """Return the track's rating."""
         rating_number = self.tag.popularities.get(rating_email).rating
-        return rating_number if rating_number else 0
+        return str(rating_number if rating_number else 0)
 
     @property
     def image(self) -> Pixels | str:
