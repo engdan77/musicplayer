@@ -539,6 +539,8 @@ class MusicPlayerApp(App):
         for file in files:
             try:
                 tracks.append(Track(TinyTag.get(file, image=True, ignore_errors=True)))
+                my_file = TinyTag.get(file, image=True, ignore_errors=True)
+                ...
             except tinytag.tinytag.TinyTagException as e:
                 logger.warning(f"Error loading track {file}: {e}")
                 failed_tracks.append(file)
