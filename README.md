@@ -19,5 +19,6 @@ from [SoundHelix](https://www.soundhelix.com/). Copyright for these belongs to t
 ## Basic installation
 
 ```bash
-uv run musicplayer
+uv tool install https://github.com/engdan77/musicplayer.git
+musicplayer
 ```
