@@ -10,6 +10,9 @@ from random import shuffle
 from typing import Iterable, Optional
 from collections import deque
 
+from loguru import logger
+
+import tinytag
 from tinytag import TinyTag
 
 from rich.text import Text
@@ -29,6 +32,8 @@ from textual.widgets import Button, DataTable, DirectoryTree, Footer, Header, In
 from textual.widgets import Static
 from textual.widgets._data_table import RowKey  # noqa - required to extend DataTable
 from textual.widgets._directory_tree import DirEntry  # noqa - required to extend DirectoryTree
+
+logger.add("musicplayer.log", rotation="10 MB")
 
 # Hide the Pygame prompts from the terminal.
 # Imported libraries should *not* dump to the terminal...
@@ -529,7 +534,19 @@ class MusicPlayerApp(App):
 
     def set_tracks(self, files: list[str]) -> None:
         """Set the list of available tracks from the list of files."""
-        tracks: list[Track] = [Track(TinyTag.get(file, image=True)) for file in files]
+        tracks: list[Track] = []
+        failed_tracks: list[str] = []
+        for file in files:
+            try:
+                tracks.append(Track(TinyTag.get(file, image=True, ignore_errors=True)))
+            except tinytag.tinytag.TinyTagException as e:
+                logger.warning(f"Error loading track {file}: {e}")
+                failed_tracks.append(file)
+                continue
+        if failed_tracks:
+            status = f'Failed to load {len(failed_tracks)}/{len(files)} tracks'
+            logger.error(status)
+            raise RuntimeError(status)
         self.tracks.clear()
         [self.tracks.update({TrackPath(files[idx]): track}) for idx, track in enumerate(tracks)]
 
