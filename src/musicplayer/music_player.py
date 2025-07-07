@@ -399,7 +399,7 @@ class HelpScreen(ModalScreen):
 class MusicPlayerApp(App):
     """A music player app."""
 
-    TITLE = "tTunes"  # 😏
+    TITLE = "MusicPlayer"  # 😏
 
     CSS_PATH = "music_player.css"
 
@@ -734,7 +734,7 @@ class MusicPlayerApp(App):
         [widget.update(message) for widget in self.query("#status_bar")]
 
 
-if __name__ == "__main__":
+def main():
     # Add path to the dynamic libraries
     # TODO Is this actually required, or are libraries already on the path?
     # sys.path.append(PATH_DYLIBS)
@@ -746,3 +746,7 @@ if __name__ == "__main__":
     app = MusicPlayerApp()
     # app.cwd = "./demo_music"
     app.run()
+
+
+if __name__ == "__main__":
+    main()
