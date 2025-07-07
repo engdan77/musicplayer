@@ -15,6 +15,10 @@ from loguru import logger
 import tinytag
 from tinytag import TinyTag
 
+import eyed3
+from eyed3.core import AudioFile
+from eyed3.id3 import Tag
+
 from rich.text import Text
 from rich_pixels import Pixels
 
@@ -66,42 +70,42 @@ ARTWORK_DIMENSIONS: tuple[int, int] = (24, 24)
 
 class Track:
     """Convenience decorator for `TinyTag`."""
-    track: TinyTag
+    track: AudioFile
 
-    def __init__(self, track: TinyTag):
+    def __init__(self, track: AudioFile):
         self.track = track
+        self.tag = track.tag
 
     @property
     def title(self) -> str:
         """Return the track's title or a sane default."""
-        return stripped_value_or_default(self.track.title, TRACK_UNKNOWN)
+        return stripped_value_or_default(self.tag.title, TRACK_UNKNOWN)
 
     @property
     def artist(self) -> str:
         """Return the track's artist or a sane default."""
-        return stripped_value_or_default(self.track.artist, ARTIST_UNKNOWN)
+        return stripped_value_or_default(self.tag.artist, ARTIST_UNKNOWN)
 
     @property
     def album(self) -> str:
         """Return the track's album title or a sane default."""
-        return stripped_value_or_default(self.track.album, ALBUM_UNKNOWN)
+        return stripped_value_or_default(self.tag.album, ALBUM_UNKNOWN)
 
     @property
     def genre(self):
         """Return the track's genre."""
-        return self.track.genre
+        return self.tag.genre
 
     @property
     def duration(self):
         """Return the track's duration."""
-        return self.track.duration
+        return self.track.info.time_secs
 
     @property
     def image(self) -> Pixels | str:
         """Return the track's image, if available."""
-        image_data = self.track.get_image()
-        if image_data:
-            image: Image = Image.open(BytesIO(image_data))
+        for image in self.tag.images:
+            image: Image = Image.open(BytesIO(image.image_data))
             return Pixels.from_image(image.resize(size=ARTWORK_DIMENSIONS))
         return NO_ARTWORK
 
@@ -538,10 +542,8 @@ class MusicPlayerApp(App):
         failed_tracks: list[str] = []
         for file in files:
             try:
-                tracks.append(Track(TinyTag.get(file, image=True, ignore_errors=True)))
-                my_file = TinyTag.get(file, image=True, ignore_errors=True)
-                ...
-            except tinytag.tinytag.TinyTagException as e:
+                tracks.append(Track(eyed3.load(file)))
+            except eyed3.Error as e:
                 logger.warning(f"Error loading track {file}: {e}")
                 failed_tracks.append(file)
                 continue
