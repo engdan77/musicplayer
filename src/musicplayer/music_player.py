@@ -112,6 +112,12 @@ class Track:
             return None
 
     @property
+    def comment(self):
+        """Return the track's comment."""
+        if comment := self.tag.comments:
+            return comment[0].text
+
+    @property
     def image(self) -> Pixels | str:
         """Return the track's image, if available."""
         for image in self.tag.images:
@@ -165,7 +171,7 @@ class TrackList(DataTable):
         # TODO See if there is a way to expand a DataTable to full width.
         #      See: https://github.com/Textualize/textual/discussions/1942
         self.add_column(label="  ", width=2, key="status")
-        self.add_columns("Title", "Artist", "Album", "Length", "Genre", "Rating")
+        self.add_columns("Title", "Artist", "Album", "Length", "Genre", "Rating", "Comment")
         self.cursor_type = "row"
         self.zebra_stripes = True
 
@@ -173,7 +179,7 @@ class TrackList(DataTable):
         self.clear()
         for track_path in playlist:
             track: Track = tracks[track_path]
-            track_row = [None, track.title, track.artist, track.album, track.duration, track.genre, track.rating]
+            track_row = [None, track.title, track.artist, track.album, track.duration, track.genre, track.rating, track.comment]
             track_row[4] = Text(format_duration(track.duration), justify="right")
             self.add_row(*track_row, key=track_path)
 
