@@ -103,19 +103,42 @@ class Track:
 
     @property
     def rating(self, rating_email: bytes = b"no@email"):
-        """Return the track's rating."""
+        """Return the track's rating.
+
+        This list details how Windows Explorer reads and writes the POPM frame:
+        224-255 = 5 stars when READ with Windows Explorer, writes 255
+        160-223 = 4 stars when READ with Windows Explorer, writes 196
+        096-159 = 3 stars when READ with Windows Explorer, writes 128
+        032-095 = 2 stars when READ with Windows Explorer, writes 64
+        001-031 = 1 star when READ with Windows Explorer, writes 1
+        """
         rating_item = self.tag.popularities.get(rating_email)
         if rating_item:
             rating_number = rating_item.rating
-            return str(rating_number if rating_number else 0)
+            range_table = {
+                (1, 31): '⭐',
+                (32, 95): '⭐⭐',
+                (96, 159): '⭐⭐⭐',
+                (160, 223): '⭐⭐⭐⭐',
+                (224, 255): '⭐⭐⭐⭐⭐'
+            }
+            for (range_start, range_end), symbol in range_table.items():
+                if range_start <= rating_number <= range_end:
+                    return symbol
+                return None
         else:
             return None
 
     @property
     def comment(self):
         """Return the track's comment."""
-        if comment := self.tag.comments:
-            return comment[0].text
+        if comment_ := self.tag.comments:
+            limit = 64
+            text = comment_[0].text
+            if len(text) > limit:
+                return f"{text[:limit]}..."
+            else:
+                return text
 
     @property
     def image(self) -> Pixels | str:
