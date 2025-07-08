@@ -5,7 +5,8 @@ A simple music player (MP3, etc.) using [Textual](https://textual.textualize.io/
 ## Enhancements
 
 The current main enhancements made to this project [bluematt/textual-musicplayer](https://github.com/bluematt/textual-musicplayer)
--  Star ⭐ rating based on ["POPULARIMETER"](https://id3.org/id3v2.3.0#Popularimeter) tag in song list.
+- Transition to [uv](https://docs.astral.sh/uv/) with advantages such as easier installation and locked dependencies 
+- Star ⭐ rating based on ["POPULARIMETER"](https://id3.org/id3v2.3.0#Popularimeter) tag in song list.
 - Comments added to song list
 
 ## Requirements
