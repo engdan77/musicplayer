@@ -102,7 +102,7 @@ class Track:
         return self.track.info.time_secs
 
     @property
-    def rating(self, rating_email: bytes = b"no@email"):
+    def rating(self):
         """Return the track's rating.
 
         This list details how Windows Explorer reads and writes the POPM frame:
@@ -112,9 +112,12 @@ class Track:
         032-095 = 2 stars when READ with Windows Explorer, writes 64
         001-031 = 1 star when READ with Windows Explorer, writes 1
         """
-        rating_item = self.tag.popularities.get(rating_email)
-        if rating_item:
-            rating_number = rating_item.rating
+        # rating_item = self.tag.popularities.get(rating_email)
+
+        if len(self.tag.popularities) == 0:
+            return None
+        else:
+            rating_number = self.tag.popularities[0].rating
             range_table = {
                 (1, 31): '⭐',
                 (32, 95): '⭐⭐',
@@ -125,8 +128,6 @@ class Track:
             for (range_start, range_end), symbol in range_table.items():
                 if range_start <= rating_number <= range_end:
                     return symbol
-                return None
-        else:
             return None
 
     @property
