@@ -2,6 +2,12 @@
 
 A simple music player (MP3, etc.) using [Textual](https://textual.textualize.io/).
 
+## Enhancements
+
+The current main enhancements made originally in this project [bluematt/textual-musicplayer](https://github.com/bluematt/textual-musicplayer)
+-  Star ⭐ rating based on ["POPULARIMETER"](https://id3.org/id3v2.3.0#Popularimeter) tag in song list.
+- Comments added to song list
+
 ## Requirements
 
 - textual - for TUI
