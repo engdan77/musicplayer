@@ -101,10 +101,15 @@ class Track:
         """Return the track's duration."""
         return self.track.info.time_secs
 
+    @property
     def rating(self, rating_email: bytes = b"no@email"):
         """Return the track's rating."""
-        rating_number = self.tag.popularities.get(rating_email).rating
-        return str(rating_number if rating_number else 0)
+        rating_item = self.tag.popularities.get(rating_email)
+        if rating_item:
+            rating_number = rating_item.rating
+            return str(rating_number if rating_number else 0)
+        else:
+            return None
 
     @property
     def image(self) -> Pixels | str:
