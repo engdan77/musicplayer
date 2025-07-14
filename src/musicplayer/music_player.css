@@ -15,6 +15,10 @@ SongControlBar Vertical {
     color: gray;
 }
 
+#status_bar {
+    color: red;
+}
+
 PlayerControls {
     layout: horizontal;
     min-width: 18;

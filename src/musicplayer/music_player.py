@@ -2,22 +2,19 @@
 
 from __future__ import annotations
 
+import sys
 from io import BytesIO
 from os import environ, path, walk
 from os.path import abspath
 from pathlib import Path
 from random import shuffle
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Annotated
 from collections import deque
-
+from persist_cache import cache
 from loguru import logger
-
-import tinytag
-from tinytag import TinyTag
-
 import eyed3
 from eyed3.core import AudioFile
-from eyed3.id3 import Tag
+from platformdirs import user_cache_path
 
 from rich.text import Text
 from rich_pixels import Pixels
@@ -36,6 +33,8 @@ from textual.widgets import Button, DataTable, DirectoryTree, Footer, Header, In
 from textual.widgets import Static
 from textual.widgets._data_table import RowKey  # noqa - required to extend DataTable
 from textual.widgets._directory_tree import DirEntry  # noqa - required to extend DirectoryTree
+
+USER_CACHE_PATH = user_cache_path().as_posix()
 
 logger.add("musicplayer.log", rotation="10 MB")
 
@@ -203,7 +202,8 @@ class TrackList(DataTable):
         self.clear()
         for track_path in playlist:
             track: Track = tracks[track_path]
-            track_row = [None, track.title, track.artist, track.album, track.duration, track.genre, track.rating, track.comment]
+            track_row = [None, track.title, track.artist, track.album, track.duration, track.genre, track.rating,
+                         track.comment]
             track_row[4] = Text(format_duration(track.duration), justify="right")
             self.add_row(*track_row, key=track_path)
 
@@ -305,7 +305,7 @@ class MusicPlayer(Static):
     def compose(self) -> ComposeResult:
         yield SongControlBar(id="song_control_bar")
         yield TrackList(id="track_list")
-        yield Static("", id="status_bar")
+        yield Static("Foo", id="status_bar")
 
 
 def stripped_value_or_default(value: any, default: str) -> str:
@@ -371,6 +371,22 @@ def stop_playback() -> None:
 def get_playback_position() -> float:
     """Return the current playback position, in seconds."""
     return float(pygame.mixer.music.get_pos()) / 1000.0  # get_pos() returns a value in milliseconds
+
+
+def get_mp3_track_list(files: list[str]) -> tuple[
+    Annotated[list[Track], 'Successful list'],
+    Annotated[list[str], 'Failed list']]:
+    """Return the list of tracks in the mp3 file and failed ones"""
+    tracks: list[Track] = []
+    failed_tracks: list[str] = []
+    for idx, file in enumerate(files, start=1):
+        try:
+            tracks.append(Track(eyed3.load(file)))
+        except eyed3.Error as e:
+            logger.warning(f"Error loading track {file}: {e}")
+            failed_tracks.append(file)
+            continue
+    return tracks, failed_tracks
 
 
 class TrackScreen(Screen):
@@ -468,7 +484,11 @@ class MusicPlayerApp(App):
     }
 
     # The current working directory (location of music files).
-    cwd = Reactive(".")
+    if len(sys.argv) > 1 and Path(sys.argv[1]).exists():
+        process_dir = sys.argv[1]
+    else:
+        process_dir = '.'
+    cwd = Reactive(process_dir)
     # The currently available tracks, loaded from `cwd`.
     tracks: Reactive[dict[TrackPath, Track]] = Reactive({})
     # The current order of the tracks to play.
@@ -488,13 +508,23 @@ class MusicPlayerApp(App):
     def watch_playlist(self) -> None:
         self.update_track_list()
 
+    def update_initial_track_list(self) -> None:
+        self.refresh_tracks(self.cwd)
+        self.reset_current_track()
+
+    def please_wait(self):
+        # TODO: Ugly workaround until figured out blocking "updating" not updating status row
+        self.set_status('Updating track list .. this may take a while...')
+
     async def on_mount(self) -> None:
         await self.push_screen("tracks")
         self.set_status("Starting up...")
         self.progress_timer = self.set_interval(FRAME_RATE, self.monitor_track_progress, pause=False)
         self.stop()
-        self.refresh_tracks(self.cwd)
-        self.reset_current_track()
+        self.set_timer(0.1, self.please_wait)
+        self.set_timer(0.2, self.update_initial_track_list)  # New
+        # self.refresh_tracks(self.cwd)
+        # self.reset_current_track()
 
     def action_save_screen(self) -> None:
         self.save_screenshot(path=path.expanduser("~/Desktop"))
@@ -558,7 +588,7 @@ class MusicPlayerApp(App):
 
     def refresh_tracks(self, track_directory: str) -> None:
         """Refresh the track list from the supplied directory."""
-        self.set_status("Loading track list...")
+        self.set_status("Loading track list (this may take a while)...")
         try:
             files = get_files_in_directory(track_directory)
             self.set_tracks(files)
@@ -576,12 +606,15 @@ class MusicPlayerApp(App):
         self.update_playlist(self.tracks.keys())
         self.update_track_list()
 
+    @cache(dir=USER_CACHE_PATH)
     def set_tracks(self, files: list[str]) -> None:
         """Set the list of available tracks from the list of files."""
         tracks: list[Track] = []
         failed_tracks: list[str] = []
-        for file in files:
+        tot_files = len(files)
+        for idx, file in enumerate(files, start=1):
             try:
+                self.set_status(f"Loading track list...  ({idx}/{tot_files})")
                 tracks.append(Track(eyed3.load(file)))
             except eyed3.Error as e:
                 logger.warning(f"Error loading track {file}: {e}")
@@ -792,7 +825,9 @@ class MusicPlayerApp(App):
 
     def set_status(self, message: str) -> None:
         """Update the status message for all status bar widgets."""
-        [widget.update(message) for widget in self.query("#status_bar")]
+        for widget in self.query("#status_bar"):
+            widget.update(message)
+            # widget.call_after_refresh(self.app.push_screen, "tracks")
 
 
 def main():
