@@ -33,12 +33,13 @@ from textual.widgets import Button, DataTable, DirectoryTree, Footer, Header, In
 from textual.widgets import Static
 from textual.widgets._data_table import RowKey  # noqa - required to extend DataTable
 from textual.widgets._directory_tree import DirEntry  # noqa - required to extend DirectoryTree
-from cyclopts import App, Parameter, validators
+from cyclopts import App as CliApp
+from cyclopts import Parameter, validators
 
 USER_CACHE_PATH = user_cache_path('musicplayer').as_posix()
 USER_LOG_PATH = user_log_path('musicplayer')
 
-cli_app = App()
+cli_app = CliApp()
 
 mp3_path = Path('.')
 
@@ -834,9 +835,9 @@ def play(audio_path: Annotated[Path, Parameter(validator=validators.Path(exists=
     init_pygame()
 
     # Run the app.
-    app = MusicPlayerApp()
+    music_app = MusicPlayerApp()
     # app.cwd = "./demo_music"
-    app.run()
+    music_app.run()
 
 
 @cli_app.command
