@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import sys
 from io import BytesIO
 from os import environ, path, walk
@@ -19,6 +20,7 @@ from platformdirs import user_cache_path, user_log_path
 from rich.text import Text
 from rich_pixels import Pixels
 from PIL import Image, UnidentifiedImageError
+import rich
 
 from textual import on
 from textual.app import App, ComposeResult
@@ -89,6 +91,7 @@ class Track:
         self.rating = self.get_rating()
         self.comment = self.get_comment()
         self.image = self.get_image()
+        self.path = self.track.path
 
     def __getstate__(self):
         # Copy the object's state from self.__dict__ which contains
@@ -158,6 +161,18 @@ class Track:
         filters = filter_str.lower().split(" ")
         search = f"{self.title} {self.artist} {self.album} {self.genre}".lower()
         return all(f in search for f in filters)
+
+    def as_dict(self):
+        return {
+            "title": self.title,
+            "artist": self.artist,
+            "album": self.album.title(),
+            "year": self.year,
+            "genre": self.genre.name,
+            "rating": self.rating,
+            "comment": self.comment,
+            "path": self.path
+        }
 
     def __repr__(self):
         return f"{self.title} by {self.artist}"
@@ -844,6 +859,14 @@ def clear_cache():
     """Clear the cache."""
     logger.info('Clearing cache...')
     get_mp3_track_list.cache_clear()
+
+
+@cli_app.command
+def export_id3(audio_path: Annotated[Path, Parameter(validator=validators.Path(exists=True, dir_okay=True))] = Path('.')):
+    """Export id3 tags as JSON"""
+    tracks = get_mp3_track_list(get_files_in_directory(audio_path.as_posix()))
+    audio_files = [track.as_dict() for track in tracks]
+    rich.print_json(data=audio_files)
 
 
 def main():
