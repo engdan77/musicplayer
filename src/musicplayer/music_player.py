@@ -34,9 +34,9 @@ from textual.widgets import Static
 from textual.widgets._data_table import RowKey  # noqa - required to extend DataTable
 from textual.widgets._directory_tree import DirEntry  # noqa - required to extend DirectoryTree
 
-USER_CACHE_PATH = user_cache_path().as_posix()
+USER_CACHE_PATH = user_cache_path('musicplayer').as_posix()
 
-logger.add("musicplayer.log", rotation="10 MB")
+logger.add("musicplayer.log", rotation="10 MB", level="DEBUG")
 
 # Hide the Pygame prompts from the terminal.
 # Imported libraries should *not* dump to the terminal...
@@ -68,40 +68,34 @@ ARTWORK_DIMENSIONS: tuple[int, int] = (24, 24)
 
 
 class Track:
-    """Convenience decorator for `TinyTag`."""
+    """Convenience decorator for eye3d"""
     track: AudioFile
 
     def __init__(self, track: AudioFile):
         self.track = track
-        self.tag = track.tag
+        self.title = stripped_value_or_default(self.track.tag.title, TRACK_UNKNOWN)
+        self.artist = stripped_value_or_default(self.track.tag.artist, ARTIST_UNKNOWN)
+        self.album = stripped_value_or_default(self.track.tag.album, ALBUM_UNKNOWN)
+        self.genre = self.track.tag.genre
+        self.duration = self.track.info.time_secs
+        self.rating = self.get_rating()
+        self.comment = self.get_comment()
+        self.image = self.get_image()
 
-    @property
-    def title(self) -> str:
-        """Return the track's title or a sane default."""
-        return stripped_value_or_default(self.tag.title, TRACK_UNKNOWN)
+    def __getstate__(self):
+        # Copy the object's state from self.__dict__ which contains
+        # all our instance attributes. Always use the dict.copy()
+        # method to avoid modifying the original state.
+        state = self.__dict__.copy()
+        # Remove the unpicklable entries.
+        del state['track']
+        return state
 
-    @property
-    def artist(self) -> str:
-        """Return the track's artist or a sane default."""
-        return stripped_value_or_default(self.tag.artist, ARTIST_UNKNOWN)
+    def __setstate__(self, state):
+        # Restore instance attributes .
+        self.__dict__.update(state)
 
-    @property
-    def album(self) -> str:
-        """Return the track's album title or a sane default."""
-        return stripped_value_or_default(self.tag.album, ALBUM_UNKNOWN)
-
-    @property
-    def genre(self):
-        """Return the track's genre."""
-        return self.tag.genre
-
-    @property
-    def duration(self):
-        """Return the track's duration."""
-        return self.track.info.time_secs
-
-    @property
-    def rating(self):
+    def get_rating(self):
         """Return the track's rating.
 
         This list details how Windows Explorer reads and writes the POPM frame:
@@ -113,10 +107,10 @@ class Track:
         """
         # rating_item = self.tag.popularities.get(rating_email)
 
-        if len(self.tag.popularities) == 0:
+        if len(self.track.tag.popularities) == 0:
             return None
         else:
-            rating_number = self.tag.popularities[0].rating
+            rating_number = self.track.tag.popularities[0].rating
             range_table = {
                 (1, 31): '⭐',
                 (32, 95): '⭐⭐',
@@ -129,21 +123,21 @@ class Track:
                     return symbol
             return None
 
-    @property
-    def comment(self):
+    def get_comment(self):
         """Return the track's comment."""
-        if comment_ := self.tag.comments:
+        if comment_ := self.track.tag.comments:
             limit = 64
             text = comment_[0].text
             if len(text) > limit:
                 return f"{text[:limit]}..."
             else:
                 return text
+        else:
+            return ''
 
-    @property
-    def image(self) -> Pixels | str:
+    def get_image(self) -> Pixels | str:
         """Return the track's image, if available."""
-        for image in self.tag.images:
+        for image in self.track.tag.images:
             image: Image = Image.open(BytesIO(image.image_data))
             return Pixels.from_image(image.resize(size=ARTWORK_DIMENSIONS))
         return NO_ARTWORK
@@ -387,9 +381,9 @@ def get_mp3_track_list(files: list[str]) -> list[Track]:
             continue
     if failed_tracks:
         message = f"Failed to load {len(failed_tracks)}/{len(files)} tracks"
-        logger.warning(message)
+        logger.error(message)
         for t in failed_tracks:
-            logger.warning(f"  {t}")
+            logger.error(f"  {t}")
         raise RuntimeError(message)
     return tracks
 
@@ -613,7 +607,7 @@ class MusicPlayerApp(App):
 
     def set_tracks(self, files: list[str]) -> None:
         """Set the list of available tracks from the list of files."""
-        tracks, failed_tracks = get_mp3_track_list(files)
+        tracks = get_mp3_track_list(files)
         self.tracks.clear()
         [self.tracks.update({TrackPath(files[idx]): track}) for idx, track in enumerate(tracks)]
 
