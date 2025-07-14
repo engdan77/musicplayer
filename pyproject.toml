@@ -1,6 +1,6 @@
 [project]
 name = "musicplayer"
-version = "0.0.13"
+version = "0.0.15"
 description = "Simple music player"
 readme = "README.md"
 authors = [
@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "cyclopts>=3.22.2",
     "eyed3>=0.9.8",
     "loguru>=0.7.3",
     "persist-cache>=0.4.4",

@@ -14,7 +14,7 @@ from persist_cache import cache
 from loguru import logger
 import eyed3
 from eyed3.core import AudioFile
-from platformdirs import user_cache_path
+from platformdirs import user_cache_path, user_log_path
 
 from rich.text import Text
 from rich_pixels import Pixels
@@ -33,10 +33,17 @@ from textual.widgets import Button, DataTable, DirectoryTree, Footer, Header, In
 from textual.widgets import Static
 from textual.widgets._data_table import RowKey  # noqa - required to extend DataTable
 from textual.widgets._directory_tree import DirEntry  # noqa - required to extend DirectoryTree
+from cyclopts import App, Parameter, validators
 
 USER_CACHE_PATH = user_cache_path('musicplayer').as_posix()
+USER_LOG_PATH = user_log_path('musicplayer')
 
-logger.add("musicplayer.log", rotation="10 MB", level="DEBUG")
+cli_app = App()
+
+mp3_path = Path('.')
+
+USER_LOG_PATH.mkdir(parents=True, exist_ok=True)
+logger.add(f"{USER_LOG_PATH.as_posix()}/musicplayer.log", rotation="10 MB", level="DEBUG")
 
 # Hide the Pygame prompts from the terminal.
 # Imported libraries should *not* dump to the terminal...
@@ -485,11 +492,7 @@ class MusicPlayerApp(App):
         "now_playing": NowPlayingScreen()
     }
 
-    # The current working directory (location of music files).
-    if len(sys.argv) > 1 and Path(sys.argv[1]).exists():
-        process_dir = sys.argv[1]
-    else:
-        process_dir = '.'
+    process_dir = mp3_path.as_posix()
     cwd = Reactive(process_dir)
     # The currently available tracks, loaded from `cwd`.
     tracks: Reactive[dict[TrackPath, Track]] = Reactive({})
@@ -590,7 +593,7 @@ class MusicPlayerApp(App):
 
     def refresh_tracks(self, track_directory: str) -> None:
         """Refresh the track list from the supplied directory."""
-        self.set_status("Loading track list (this may take a while)...")
+        self.set_status(f"Loading track list (this may take a while)... Caching to {USER_CACHE_PATH} ...")
         try:
             files = get_files_in_directory(track_directory)
             self.set_tracks(files)
@@ -817,7 +820,12 @@ class MusicPlayerApp(App):
             # widget.call_after_refresh(self.app.push_screen, "tracks")
 
 
-def main():
+@cli_app.command()
+def player(audio_path: Annotated[Path, Parameter(validator=validators.Path(exists=True, dir_okay=True))] = Path('.')):
+    """Run the music player."""
+    global mp3_path
+    mp3_path = audio_path.resolve()
+
     # Add path to the dynamic libraries
     # TODO Is this actually required, or are libraries already on the path?
     # sys.path.append(PATH_DYLIBS)
@@ -829,6 +837,17 @@ def main():
     app = MusicPlayerApp()
     # app.cwd = "./demo_music"
     app.run()
+
+
+@cli_app.command
+def clear_cache():
+    """Clear the cache."""
+    logger.info('Clearing cache...')
+    get_mp3_track_list.cache_clear()
+
+
+def main():
+    cli_app()
 
 
 if __name__ == "__main__":
