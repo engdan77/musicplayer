@@ -820,8 +820,8 @@ class MusicPlayerApp(App):
             # widget.call_after_refresh(self.app.push_screen, "tracks")
 
 
-@cli_app.command()
-def player(audio_path: Annotated[Path, Parameter(validator=validators.Path(exists=True, dir_okay=True))] = Path('.')):
+@cli_app.default()
+def play(audio_path: Annotated[Path, Parameter(validator=validators.Path(exists=True, dir_okay=True))] = Path('.')):
     """Run the music player."""
     global mp3_path
     mp3_path = audio_path.resolve()
