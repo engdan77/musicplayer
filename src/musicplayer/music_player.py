@@ -19,7 +19,7 @@ from platformdirs import user_cache_path
 from rich.text import Text
 from rich_pixels import Pixels
 
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 from textual import on
 from textual.app import App, ComposeResult
@@ -137,9 +137,12 @@ class Track:
 
     def get_image(self) -> Pixels | str:
         """Return the track's image, if available."""
-        for image in self.track.tag.images:
-            image: Image = Image.open(BytesIO(image.image_data))
-            return Pixels.from_image(image.resize(size=ARTWORK_DIMENSIONS))
+        try:
+            for image in self.track.tag.images:
+                image: Image = Image.open(BytesIO(image.image_data))
+                return Pixels.from_image(image.resize(size=ARTWORK_DIMENSIONS))
+        except (UnidentifiedImageError, OSError) as e:
+            pass
         return NO_ARTWORK
 
     def contains(self, filter_str: str):
@@ -376,7 +379,7 @@ def get_mp3_track_list(files: list[str]) -> list[Track]:
         try:
             tracks.append(Track(eyed3.load(file)))
         except (eyed3.Error, OSError) as e:
-            logger.warning(f"Error loading track {file}: {e}")
+            logger.warning(f"Error loading track {file}: [{type(e)}] {e}")
             failed_tracks.append(file)
             continue
     if failed_tracks:

@@ -1,2 +1,1 @@
-def main() -> None:
-    print("Hello from musicplayer!")
+from .music_player import get_mp3_track_list, Track
