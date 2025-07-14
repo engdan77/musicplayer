@@ -18,7 +18,6 @@ from platformdirs import user_cache_path, user_log_path
 
 from rich.text import Text
 from rich_pixels import Pixels
-
 from PIL import Image, UnidentifiedImageError
 
 from textual import on
@@ -85,6 +84,7 @@ class Track:
         self.artist = stripped_value_or_default(self.track.tag.artist, ARTIST_UNKNOWN)
         self.album = stripped_value_or_default(self.track.tag.album, ALBUM_UNKNOWN)
         self.genre = self.track.tag.genre
+        self.year = self.track.tag.getBestDate().year
         self.duration = self.track.info.time_secs
         self.rating = self.get_rating()
         self.comment = self.get_comment()
@@ -199,7 +199,7 @@ class TrackList(DataTable):
         # TODO See if there is a way to expand a DataTable to full width.
         #      See: https://github.com/Textualize/textual/discussions/1942
         self.add_column(label="  ", width=2, key="status")
-        self.add_columns("Title", "Artist", "Album", "Length", "Genre", "Rating", "Comment")
+        self.add_columns("Title", "Artist", "Album", "Length", "Year", "Genre", "Rating", "Comment")
         self.cursor_type = "row"
         self.zebra_stripes = True
 
@@ -207,8 +207,7 @@ class TrackList(DataTable):
         self.clear()
         for track_path in playlist:
             track: Track = tracks[track_path]
-            track_row = [None, track.title, track.artist, track.album, track.duration, track.genre, track.rating,
-                         track.comment]
+            track_row = [None, track.title, track.artist, track.album, track.duration, track.year, track.genre, track.rating, track.comment]
             track_row[4] = Text(format_duration(track.duration), justify="right")
             self.add_row(*track_row, key=track_path)
 
