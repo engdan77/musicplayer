@@ -373,20 +373,25 @@ def get_playback_position() -> float:
     return float(pygame.mixer.music.get_pos()) / 1000.0  # get_pos() returns a value in milliseconds
 
 
-def get_mp3_track_list(files: list[str]) -> tuple[
-    Annotated[list[Track], 'Successful list'],
-    Annotated[list[str], 'Failed list']]:
+@cache(dir=USER_CACHE_PATH)
+def get_mp3_track_list(files: list[str]) -> list[Track]:
     """Return the list of tracks in the mp3 file and failed ones"""
     tracks: list[Track] = []
     failed_tracks: list[str] = []
     for idx, file in enumerate(files, start=1):
         try:
             tracks.append(Track(eyed3.load(file)))
-        except eyed3.Error as e:
+        except (eyed3.Error, OSError) as e:
             logger.warning(f"Error loading track {file}: {e}")
             failed_tracks.append(file)
             continue
-    return tracks, failed_tracks
+    if failed_tracks:
+        message = f"Failed to load {len(failed_tracks)}/{len(files)} tracks"
+        logger.warning(message)
+        for t in failed_tracks:
+            logger.warning(f"  {t}")
+        raise RuntimeError(message)
+    return tracks
 
 
 class TrackScreen(Screen):
@@ -606,24 +611,9 @@ class MusicPlayerApp(App):
         self.update_playlist(self.tracks.keys())
         self.update_track_list()
 
-    @cache(dir=USER_CACHE_PATH)
     def set_tracks(self, files: list[str]) -> None:
         """Set the list of available tracks from the list of files."""
-        tracks: list[Track] = []
-        failed_tracks: list[str] = []
-        tot_files = len(files)
-        for idx, file in enumerate(files, start=1):
-            try:
-                self.set_status(f"Loading track list...  ({idx}/{tot_files})")
-                tracks.append(Track(eyed3.load(file)))
-            except eyed3.Error as e:
-                logger.warning(f"Error loading track {file}: {e}")
-                failed_tracks.append(file)
-                continue
-        if failed_tracks:
-            status = f'Failed to load {len(failed_tracks)}/{len(files)} tracks'
-            logger.error(status)
-            raise RuntimeError(status)
+        tracks, failed_tracks = get_mp3_track_list(files)
         self.tracks.clear()
         [self.tracks.update({TrackPath(files[idx]): track}) for idx, track in enumerate(tracks)]
 
