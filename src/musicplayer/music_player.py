@@ -45,7 +45,8 @@ cli_app = CliApp()
 mp3_path = Path('.')
 
 USER_LOG_PATH.mkdir(parents=True, exist_ok=True)
-logger.add(f"{USER_LOG_PATH.as_posix()}/musicplayer.log", rotation="10 MB", level="DEBUG")
+USER_LOG_FILE = USER_LOG_PATH / 'musicplayer.log'
+logger.add(f"{USER_LOG_FILE.as_posix()}", rotation="10 MB", level="DEBUG")
 
 # Hide the Pygame prompts from the terminal.
 # Imported libraries should *not* dump to the terminal...
@@ -519,7 +520,7 @@ class MusicPlayerApp(App):
     progress_timer: Timer = None
 
     def watch_cwd(self) -> None:
-        self.refresh_tracks(self.cwd)
+        self.refresh_tracks(mp3_path.as_posix())
 
     def watch_current_track(self) -> None:
         if self.is_playing:
@@ -529,12 +530,12 @@ class MusicPlayerApp(App):
         self.update_track_list()
 
     def update_initial_track_list(self) -> None:
-        self.refresh_tracks(self.cwd)
+        self.refresh_tracks(mp3_path.as_posix())
         self.reset_current_track()
 
     def please_wait(self):
         # TODO: Ugly workaround until figured out blocking "updating" not updating status row
-        self.set_status('Updating track list .. this may take a while...')
+        self.set_status(f"Loading track list from {mp3_path.as_posix()} (this may take a while)... Caching to {USER_CACHE_PATH} ...")
 
     async def on_mount(self) -> None:
         await self.push_screen("tracks")
@@ -608,7 +609,7 @@ class MusicPlayerApp(App):
 
     def refresh_tracks(self, track_directory: str) -> None:
         """Refresh the track list from the supplied directory."""
-        self.set_status(f"Loading track list (this may take a while)... Caching to {USER_CACHE_PATH} ...")
+        self.set_status(f"Loading track list from {mp3_path.as_posix()} (this may take a while)... Caching to {USER_CACHE_PATH} ...")
         try:
             files = get_files_in_directory(track_directory)
             self.set_tracks(files)
@@ -867,6 +868,14 @@ def export_id3(audio_path: Annotated[Path, Parameter(validator=validators.Path(e
     tracks = get_mp3_track_list(get_files_in_directory(audio_path.as_posix()))
     audio_files = [track.as_dict() for track in tracks]
     rich.print_json(data=audio_files)
+
+
+@cli_app.command
+def logs():
+    """Display logs"""
+    with USER_LOG_FILE.open('r') as f:
+        for line in f:
+            print(line, end='')
 
 
 def main():
