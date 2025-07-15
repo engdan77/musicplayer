@@ -1,6 +1,14 @@
 # Musicplayer
 
-A simple terminal based music player (MP3, etc.) using [Textual](https://textual.textualize.io/).
+A simple *terminal based* music player (MP3, etc.) using [Textual](https://textual.textualize.io/).
+
+## Background and reasoning
+
+I've been countless of times been cursing over how *MacOS Music* player treating star-rating (kept outside of mp3), and for some reason when there is a glitch with e.g. your NAS where you keep your files it suddenly loose the proper file location. And not only that but experience a sluggish experience 😫
+
+So being fed up with this, I thankfully piggyback on bluematt's initial work using a quick and rapid terminal based player that I think will solve my problem - or at least permits more easily address those myself using Python.
+
+If anyone else found at this same spot - please feel free to try or enhance this project.
 
 ## Enhancements
 
@@ -27,7 +35,7 @@ If you have any music (currently MP3 or Ogg Vorbis) to hand, pop something into 
 [Sample music files](https://www.soundhelix.com/audio-examples) used in the development of this app were downloaded
 from [SoundHelix](https://www.soundhelix.com/). Copyright for these belongs to the appropriate artist(s).
 
-## Basic installation
+## Basic usage/installation
 
 ```bash
 uv tool install https://github.com/engdan77/musicplayer.git
