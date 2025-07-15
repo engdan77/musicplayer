@@ -84,6 +84,7 @@ class Track:
 
     def __init__(self, track: AudioFile):
         self.track = track
+        self.path = self.track.path
         self.title = stripped_value_or_default(self.track.tag.title, TRACK_UNKNOWN)
         self.artist = stripped_value_or_default(self.track.tag.artist, ARTIST_UNKNOWN)
         self.album = stripped_value_or_default(self.track.tag.album, ALBUM_UNKNOWN)
@@ -93,7 +94,6 @@ class Track:
         self.rating = self.get_rating()
         self.comment = self.get_comment()
         self.image = self.get_image()
-        self.path = self.track.path
 
     def __getstate__(self):
         # Copy the object's state from self.__dict__ which contains
