@@ -168,8 +168,10 @@ class Track:
 
     def contains(self, filter_str: str):
         """Return whether `filter_str` (or part thereof) is (naïvely) somewhere within the track's information."""
+        def star_normalizer(x: str):
+            return x.encode('utf8').replace(b'\xe2\xad\x90', b'*').decode('utf8') if x else ''
         filters = filter_str.lower().split(" ")
-        search = f"{self.title} {self.artist} {self.album} {self.genre} {self.year} {self.comment}".lower()
+        search = f"{self.title} {self.artist} {self.album} {self.genre} {self.year} {star_normalizer(self.rating)} {self.comment}".lower()
         return all(f in search for f in filters)
 
     def as_dict(self):
