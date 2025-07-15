@@ -678,7 +678,10 @@ class MusicPlayerApp(App):
         if self.current_track != track_path:
             previous_track_index = self.get_track_list_widget().get_row_index_from_row_key(self.current_track)
             new_track_index = self.get_track_list_widget().get_row_index_from_row_key(RowKey(track_path))
-            self.advance_track(previous_track_index - new_track_index)
+            if previous_track_index is None:
+                self.advance_track(0)
+            else:
+                self.advance_track(previous_track_index - new_track_index)
 
     @on(Button.Pressed, "#next_track")
     def select_next_track(self) -> None:
