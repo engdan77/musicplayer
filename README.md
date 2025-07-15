@@ -1,13 +1,17 @@
 # Musicplayer
 
-A simple music player (MP3, etc.) using [Textual](https://textual.textualize.io/).
+A simple terminal based music player (MP3, etc.) using [Textual](https://textual.textualize.io/).
 
 ## Enhancements
 
 The current main enhancements made to this project [bluematt/textual-musicplayer](https://github.com/bluematt/textual-musicplayer)
-- Transition to [uv](https://docs.astral.sh/uv/) with advantages such as easier installation and locked dependencies 
-- Star ⭐ rating based on ["POPULARIMETER"](https://id3.org/id3v2.3.0#Popularimeter) tag in song list.
-- Comments added to song list
+- Transition to [uv](https://docs.astral.sh/uv/) with advantages such as easier installation and locked dependencies
+- Made into a command line tool with subcommands and `--help` 
+- Star ⭐ rating based on ["POPULARIMETER"](https://id3.org/id3v2.3.0#Popularimeter) id3 tag as part of song list.
+- Also comments and year added to song list
+- Caching for speedup of large mp3 catalogs *(as it looks through all id3 tags)*
+- Status bar been modified
+- More verbose error handling such as display which mp3 files fails for whatever reason 
 
 ## Requirements
 

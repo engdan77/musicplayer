@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 import sys
+from datetime import datetime
 from io import BytesIO
 from os import environ, path, walk
 from os.path import abspath
@@ -87,7 +88,7 @@ class Track:
         self.artist = stripped_value_or_default(self.track.tag.artist, ARTIST_UNKNOWN)
         self.album = stripped_value_or_default(self.track.tag.album, ALBUM_UNKNOWN)
         self.genre = self.track.tag.genre
-        self.year = self.track.tag.getBestDate().year
+        self.year = self.get_year()
         self.duration = self.track.info.time_secs
         self.rating = self.get_rating()
         self.comment = self.get_comment()
@@ -156,6 +157,14 @@ class Track:
         except (UnidentifiedImageError, OSError) as e:
             pass
         return NO_ARTWORK
+
+    def get_year(self):
+        """Get the track's year."""
+        try:
+            return self.track.tag.getBestDate().year
+        except AttributeError:
+            logger.warning(f"Track {self.path} has no year, replacing with current year.")
+            return datetime.now().year
 
     def contains(self, filter_str: str):
         """Return whether `filter_str` (or part thereof) is (naïvely) somewhere within the track's information."""
