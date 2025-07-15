@@ -47,7 +47,7 @@ mp3_path = Path('.')
 
 USER_LOG_PATH.mkdir(parents=True, exist_ok=True)
 USER_LOG_FILE = USER_LOG_PATH / 'musicplayer.log'
-logger.add(f"{USER_LOG_FILE.as_posix()}", rotation="10 MB", level="DEBUG")
+logger.add(USER_LOG_FILE.as_posix(), rotation="10 MB", level="DEBUG")
 
 # Hide the Pygame prompts from the terminal.
 # Imported libraries should *not* dump to the terminal...
