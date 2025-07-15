@@ -169,7 +169,7 @@ class Track:
     def contains(self, filter_str: str):
         """Return whether `filter_str` (or part thereof) is (naïvely) somewhere within the track's information."""
         filters = filter_str.lower().split(" ")
-        search = f"{self.title} {self.artist} {self.album} {self.genre}".lower()
+        search = f"{self.title} {self.artist} {self.album} {self.genre} {self.year} {self.comment}".lower()
         return all(f in search for f in filters)
 
     def as_dict(self):
@@ -540,7 +540,12 @@ class MusicPlayerApp(App):
 
     def update_initial_track_list(self) -> None:
         self.refresh_tracks(mp3_path.as_posix())
-        self.reset_current_track()
+        try:
+            self.reset_current_track()
+        except IndexError:
+            self.set_status("No tracks found")
+            return
+        self.select_current_playing_track()
 
     def please_wait(self):
         # TODO: Ugly workaround until figured out blocking "updating" not updating status row
