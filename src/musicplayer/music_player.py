@@ -184,7 +184,7 @@ class Track:
             "artist": self.artist or 'Unknown',
             "album": self.album.title() if self.album else 'Unknown',
             "year": self.year or datetime.now().year,
-            "genre": self.genre.name or 'Unknown',
+            "genre": self.genre.name if self.genre else 'Unknown',
             "rating": self.rating or '',
             "comment": self.comment or 'Unknown',
             "path": self.path
