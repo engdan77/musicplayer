@@ -173,7 +173,7 @@ class Track:
             return self.track.tag.getBestDate().year
         except AttributeError:
             logger.warning(f"Track {self.path} has no year, replacing with current year.")
-            return datetime.now().year
+            return datetime.datetime.now().year
 
     def contains(self, filter_str: str):
         """Return whether `filter_str` (or part thereof) is (naïvely) somewhere within the track's information."""
