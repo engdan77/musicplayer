@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import re
 import sys
 from datetime import datetime
 from io import BytesIO
@@ -169,20 +170,20 @@ class Track:
     def contains(self, filter_str: str):
         """Return whether `filter_str` (or part thereof) is (naïvely) somewhere within the track's information."""
         def star_normalizer(x: str):
-            return x.encode('utf8').replace(b'\xe2\xad\x90', b'*').decode('utf8') if x else ''
+            return
         filters = filter_str.lower().split(" ")
         search = f"{self.title} {self.artist} {self.album} {self.genre} {self.year} {star_normalizer(self.rating)} {self.comment}".lower()
         return all(f in search for f in filters)
 
     def as_dict(self):
         return {
-            "title": self.title,
-            "artist": self.artist,
-            "album": self.album.title(),
-            "year": self.year,
-            "genre": self.genre.name,
-            "rating": self.rating,
-            "comment": self.comment,
+            "title": self.title or 'Unknown',
+            "artist": self.artist or 'Unknown',
+            "album": self.album.title() if self.album else 'Unknown',
+            "year": self.year or datetime.now().year,
+            "genre": self.genre.name or 'Unknown',
+            "rating": self.rating or '',
+            "comment": self.comment or 'Unknown',
             "path": self.path
         }
 
