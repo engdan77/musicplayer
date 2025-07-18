@@ -39,6 +39,8 @@ from textual.widgets._directory_tree import DirEntry  # noqa - required to exten
 from cyclopts import App as CliApp
 from cyclopts import Parameter, validators
 
+eyed3.log.setLevel("ERROR")
+
 USER_CACHE_PATH = user_cache_path('musicplayer').as_posix()
 USER_LOG_PATH = user_log_path('musicplayer')
 
@@ -48,6 +50,7 @@ mp3_path = Path('.')
 
 USER_LOG_PATH.mkdir(parents=True, exist_ok=True)
 USER_LOG_FILE = USER_LOG_PATH / 'musicplayer.log'
+logger.remove()
 logger.add(USER_LOG_FILE.as_posix(), rotation="10 MB", level="DEBUG")
 
 # Hide the Pygame prompts from the terminal.
