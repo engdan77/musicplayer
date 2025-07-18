@@ -18,8 +18,10 @@ The current main enhancements made to this project [bluematt/textual-musicplayer
 - Star ⭐ rating based on ["POPULARIMETER"](https://id3.org/id3v2.3.0#Popularimeter) id3 tag as part of song list.
 - Also comments and year added to song list
 - Caching for speedup of large mp3 catalogs *(as it looks through all id3 tags)*
-- Status bar been modified
-- More verbose error handling such as display which mp3 files fails for whatever reason 
+- Statusbar has been updated
+- Verbose error handling such as display which mp3 files fails for whatever reason 
+- More advanced search including comparison operators e.g. ">**** <1988 foo" to filter all songs rated more than 4 stars, older than 1988 and containing "foo" in artist, title or comment.
+
 
 ## Requirements
 

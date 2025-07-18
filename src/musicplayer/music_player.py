@@ -38,6 +38,11 @@ from textual.widgets._data_table import RowKey  # noqa - required to extend Data
 from textual.widgets._directory_tree import DirEntry  # noqa - required to extend DirectoryTree
 from cyclopts import App as CliApp
 from cyclopts import Parameter, validators
+import datetime
+import re
+
+FilterString = str
+SongString = str
 
 eyed3.log.setLevel("ERROR")
 
@@ -174,9 +179,14 @@ class Track:
         """Return whether `filter_str` (or part thereof) is (naïvely) somewhere within the track's information."""
         def star_normalizer(x: str):
             return
-        filters = filter_str.lower().split(" ")
-        search = f"{self.title} {self.artist} {self.album} {self.genre} {self.year} {star_normalizer(self.rating)} {self.comment}".lower()
-        return all(f in search for f in filters)
+        filters = filter_str
+        search_song_data = f"{self.title} {self.artist} {self.album} {self.genre} {self.year} {encode_stars(self.rating)} {self.comment}".lower()
+
+        # TODO: Refactor this filter function with stars and years more efficiently in the future
+        filters, search_song_data = get_new_search_song_strings_by_stars(filters, search_song_data)
+        filters, search_song_data = get_new_search_song_strings_by_year(filters, search_song_data)
+
+        return all(f in search_song_data for f in filters.lower().split(" "))
 
     def as_dict(self):
         return {
@@ -406,6 +416,81 @@ def stop_playback() -> None:
 def get_playback_position() -> float:
     """Return the current playback position, in seconds."""
     return float(pygame.mixer.music.get_pos()) / 1000.0  # get_pos() returns a value in milliseconds
+
+
+def normalize_stars(input_str: str) -> str:
+    """Encodes Unicode stars to ascii stars"""
+    if input_str:
+        return input_str.encode('utf8').replace(b'\xe2\xad\x90', b'*').decode('utf8')
+    else:
+        return input_str
+
+
+def encode_stars(input_str: str) -> str:
+    """Encodes Unicode stars e.g. *** to (3*) for easier matching"""
+    if not input_str:
+        return input_str
+    input_str = normalize_stars(input_str)
+    if stars := re.findall(r'\*+', normalize_stars(input_str)):
+        matched_string = stars[0]
+        star_count = len(matched_string)
+        return input_str.replace(matched_string, f'({star_count}*)')
+    else:
+        return input_str
+
+
+def get_new_search_song_strings_by_stars(filter_string: str, song_string: str) -> tuple[FilterString, SongString]:
+    """If filters with stars are present, add them to the song string and return the new filter and song string."""
+    search_bits_to_check = []
+    normalized_filter_input = normalize_stars(filter_string)
+    if '*' not in normalized_filter_input:
+        return filter_string, song_string
+    pattern = r'([<>]?)(\*+)'
+    if (re_match := re.findall(pattern, normalized_filter_input)) and len(re_match[0]) == 2:
+        op, stars = re_match[0]
+        star_count = stars.count('*')
+        match op:
+            case '>':
+                for c in range(star_count, 6):
+                    search_bits_to_check.append(f'({c}*)')
+            case '<':
+                for c in range(star_count, 0, -1):
+                    search_bits_to_check.append(f'({c}*)')
+            case '':
+                search_bits_to_check.append(f'({star_count}*)')
+        for bit in search_bits_to_check:
+            if bit in song_string:
+                return re.sub(pattern, bit, filter_string), f'{song_string} {bit}'
+        else:
+            return encode_stars(filter_string), song_string
+    else:
+        return encode_stars(filter_string), song_string
+
+
+def get_new_search_song_strings_by_year(filter_string: str, song_string: str) -> tuple[FilterString, SongString]:
+    """If filters with year are present, add them to the song string and return the new filter and song string."""
+    search_bits_to_check = []
+    pattern = r'([<>]?)(\d{4})'
+    if (re_match := re.findall(pattern, filter_string)) and len(re_match[0]) == 2:
+        op, year = re_match[0]
+        year = int(year)
+        match op:
+            case '>':
+                for y in range(year, datetime.datetime.now().year + 1):
+                    search_bits_to_check.append(y)
+            case '<':
+                for y in range(year, 1960, -1):
+                    search_bits_to_check.append(y)
+            case '':
+                ...
+        for bit in search_bits_to_check:
+            if str(bit) in song_string:
+                filter_string = filter_string.replace(f'{op}{year}', f'{bit}')
+                return filter_string, song_string
+        else:
+            return filter_string, song_string
+    else:
+        return filter_string, song_string
 
 
 @cache(dir=USER_CACHE_PATH)
