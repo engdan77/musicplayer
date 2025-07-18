@@ -183,7 +183,7 @@ class Track:
             "title": self.title or 'Unknown',
             "artist": self.artist or 'Unknown',
             "album": self.album.title() if self.album else 'Unknown',
-            "year": self.year or datetime.now().year,
+            "year": int(self.year) or 1900,
             "genre": self.genre.name if self.genre else 'Unknown',
             "rating": self.rating or '',
             "comment": self.comment or 'Unknown',
