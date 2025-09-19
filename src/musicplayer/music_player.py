@@ -511,6 +511,22 @@ def get_mp3_track_list(files: list[str]) -> list[Track]:
     return tracks
 
 
+def set_rating(mp3_path: str, rating: int) -> None:
+    """Set the rating of the mp3 file at `mp3_path` to `rating`."""
+    rates = {
+        0: 0,
+        1: 1,
+        2: 64,
+        3: 128,
+        4: 196,
+        5: 255
+    }
+    mp3 = eyed3.load(mp3_path)
+    mp3.tag.rating = rating
+    mp3.tag.popularities.set('no@email'.encode('latin1'), rates[rating], 0)
+    mp3.tag.save()
+
+
 class TrackScreen(Screen):
     """Screen that displays the track list."""
 

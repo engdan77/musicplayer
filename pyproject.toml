@@ -1,6 +1,6 @@
 [project]
 name = "musicplayer"
-version = "2025.9.1"
+version = "2025.9.2"
 description = "Simple music player"
 readme = "README.md"
 authors = [
