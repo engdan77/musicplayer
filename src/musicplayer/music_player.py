@@ -1,10 +1,6 @@
 """A simple music player (MP3, etc.) using [Textual](https://textual.textualize.io/)."""
 
 from __future__ import annotations
-
-import dataclasses
-import re
-import sys
 from datetime import datetime
 from io import BytesIO
 from os import environ, path, walk
@@ -32,7 +28,7 @@ from textual.coordinate import Coordinate
 from textual.reactive import Reactive
 from textual.screen import ModalScreen, Screen
 from textual.timer import Timer
-from textual.widgets import Button, DataTable, DirectoryTree, Footer, Header, Input, Placeholder, ProgressBar
+from textual.widgets import Button, DataTable, DirectoryTree, Footer, Header, Input, Placeholder, ProgressBar, Label
 from textual.widgets import Static
 from textual.widgets._data_table import RowKey  # noqa - required to extend DataTable
 from textual.widgets._directory_tree import DirEntry  # noqa - required to extend DirectoryTree
@@ -86,6 +82,7 @@ FRAME_RATE: float = 1.0 / 30.0  # 30 Hz
 # Artwork size
 ARTWORK_DIMENSIONS: tuple[int, int] = (24, 24)
 
+current_track_selected = None
 
 class Track:
     """Convenience decorator for eye3d"""
@@ -521,6 +518,7 @@ class TrackScreen(Screen):
         Binding("space", "app.play_pause", "|>/||"),
         Binding("left_square_bracket", "app.previous_track", "<<"),
         Binding("right_square_bracket", "app.next_track", ">>"),
+        Binding("c", "app.push_screen('comment')", "Comment"),
         Binding("p", "app.push_screen('now_playing')", "Now playing"),
         Binding("ctrl+f", "focus_filter", "Filter"),
         Binding("ctrl+x", "clear_filter", "Clear filter", show=False),
@@ -586,6 +584,24 @@ class HelpScreen(ModalScreen):
         yield Placeholder("TODO Help information will go here...")
 
 
+class CommentScreen(ModalScreen):
+    BINDINGS = [
+        Binding("escape", "pop_screen()", "Close comment", show=False),
+    ]
+
+    def compose(self) -> ComposeResult:
+        yield Input(id="comment_input", placeholder="Enter comment here...")
+
+    @on(Input.Submitted)
+    def accept_comment(self):
+        comment = self.query_one(Input).value
+        self.mount(Label(f"Comment: {comment} {current_track_selected}"))
+        mp3 = eyed3.load(current_track_selected)
+        mp3.tag.comments.set(comment, '', b'eng')
+        mp3.tag.save()
+        self.app.pop_screen()
+
+
 class MusicPlayerApp(App):
     """A music player app."""
 
@@ -605,7 +621,8 @@ class MusicPlayerApp(App):
         "help": HelpScreen(),
         "browser": BrowserScreen(),
         "tracks": TrackScreen(),
-        "now_playing": NowPlayingScreen()
+        "now_playing": NowPlayingScreen(),
+        "comment": CommentScreen(),
     }
 
     process_dir = mp3_path.as_posix()
@@ -771,6 +788,9 @@ class MusicPlayerApp(App):
     def select_track(self, track_path: TrackPath) -> None:
         """Select the current track from the playlist by advancing the deque to the appropriate index."""
         # TODO Check whether the correct track is selected.
+        global current_track_selected
+        current_track_selected = track_path
+
         if self.current_track != track_path:
             previous_track_index = self.get_track_list_widget().get_row_index_from_row_key(self.current_track)
             new_track_index = self.get_track_list_widget().get_row_index_from_row_key(RowKey(track_path))
