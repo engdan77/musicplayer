@@ -82,7 +82,7 @@ FRAME_RATE: float = 1.0 / 30.0  # 30 Hz
 # Artwork size
 ARTWORK_DIMENSIONS: tuple[int, int] = (24, 24)
 
-current_track_selected = None
+music_app_instance = None
 
 class Track:
     """Convenience decorator for eye3d"""
@@ -527,6 +527,45 @@ def set_rating(mp3_path: str, rating: int) -> None:
     mp3.tag.save()
 
 
+class CommentScreen(ModalScreen):
+    BINDINGS = [
+        Binding("escape", "pop_screen()", "Close comment", show=False),
+    ]
+
+    def __init__(self, track_path: str = "") -> None:
+        super().__init__()
+        self.track_path = track_path
+
+    def compose(self) -> ComposeResult:
+        logger.info(f"Composing and current_song_path: {self.track_path}")
+        current_comment = self.get_comment(eyed3.load(self.track_path))
+        yield Input(id="comment_input", value=current_comment, placeholder="Enter comment here...")
+
+    @staticmethod
+    def get_comment(mp3: eyed3.AudioFile) -> str:
+        if current_comments := mp3.tag.comments:
+            current_comment = current_comments[0].text
+        else:
+            current_comment = ""
+        return current_comment
+
+    @on(Input.Submitted)
+    def accept_comment(self):
+        comment = self.query_one(Input).value
+        mp3 = eyed3.load(self.track_path)
+        current_comment = self.get_comment(mp3)
+        logger.info(f'Changing comment "{current_comment}" to "{comment}" of {p.name if (p := Path(self.track_path)) else ""}')
+        mp3.tag.comments.set(comment, '', b'eng')
+        mp3.tag.save()
+        global music_app_instance
+        track = music_app_instance.tracks.get(self.track_path)
+        track.comment = comment
+        music_app_instance.update_track_list()
+        # TODO: ensure next startup clears cache
+        ...
+        self.app.pop_screen()
+
+
 class TrackScreen(Screen):
     """Screen that displays the track list."""
 
@@ -534,7 +573,7 @@ class TrackScreen(Screen):
         Binding("space", "app.play_pause", "|>/||"),
         Binding("left_square_bracket", "app.previous_track", "<<"),
         Binding("right_square_bracket", "app.next_track", ">>"),
-        Binding("c", "app.push_screen('comment')", "Comment"),
+        Binding("c", "open_comment", "Comment"),
         Binding("p", "app.push_screen('now_playing')", "Now playing"),
         Binding("ctrl+f", "focus_filter", "Filter"),
         Binding("ctrl+x", "clear_filter", "Clear filter", show=False),
@@ -544,6 +583,9 @@ class TrackScreen(Screen):
         yield Header(show_clock=True)
         yield MusicPlayer()
         yield Footer()
+
+    def action_open_comment(self) -> None:
+        self.app.push_screen(CommentScreen(music_app_instance.current_track))
 
     def action_focus_filter(self) -> None:
         self.query_one("#filter", Input).focus()
@@ -598,24 +640,6 @@ class HelpScreen(ModalScreen):
     def compose(self) -> ComposeResult:
         # TODO load help information from "HELP.md".
         yield Placeholder("TODO Help information will go here...")
-
-
-class CommentScreen(ModalScreen):
-    BINDINGS = [
-        Binding("escape", "pop_screen()", "Close comment", show=False),
-    ]
-
-    def compose(self) -> ComposeResult:
-        yield Input(id="comment_input", placeholder="Enter comment here...")
-
-    @on(Input.Submitted)
-    def accept_comment(self):
-        comment = self.query_one(Input).value
-        self.mount(Label(f"Comment: {comment} {current_track_selected}"))
-        mp3 = eyed3.load(current_track_selected)
-        mp3.tag.comments.set(comment, '', b'eng')
-        mp3.tag.save()
-        self.app.pop_screen()
 
 
 class MusicPlayerApp(App):
@@ -681,9 +705,7 @@ class MusicPlayerApp(App):
         self.progress_timer = self.set_interval(FRAME_RATE, self.monitor_track_progress, pause=False)
         self.stop()
         self.set_timer(0.1, self.please_wait)
-        self.set_timer(0.2, self.update_initial_track_list)  # New
-        # self.refresh_tracks(self.cwd)
-        # self.reset_current_track()
+        self.set_timer(0.2, self.update_initial_track_list)
 
     def action_save_screen(self) -> None:
         self.save_screenshot(path=path.expanduser("~/Desktop"))
@@ -804,8 +826,6 @@ class MusicPlayerApp(App):
     def select_track(self, track_path: TrackPath) -> None:
         """Select the current track from the playlist by advancing the deque to the appropriate index."""
         # TODO Check whether the correct track is selected.
-        global current_track_selected
-        current_track_selected = track_path
 
         if self.current_track != track_path:
             previous_track_index = self.get_track_list_widget().get_row_index_from_row_key(self.current_track)
@@ -994,9 +1014,9 @@ def play(audio_path: Annotated[Path, Parameter(validator=validators.Path(exists=
     init_pygame()
 
     # Run the app.
-    music_app = MusicPlayerApp()
-    # app.cwd = "./demo_music"
-    music_app.run()
+    global music_app_instance
+    music_app_instance = MusicPlayerApp()
+    music_app_instance.run()
 
 
 @cli_app.command
