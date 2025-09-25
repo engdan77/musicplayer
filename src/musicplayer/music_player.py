@@ -561,8 +561,8 @@ class CommentScreen(ModalScreen):
         track = music_app_instance.tracks.get(self.track_path)
         track.comment = comment
         music_app_instance.update_track_list()
-        # TODO: ensure next startup clears cache
-        ...
+        logger.info(f'Clearing cache')
+        get_mp3_track_list.cache_clear()
         self.app.pop_screen()
 
 
