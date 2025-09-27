@@ -350,7 +350,7 @@ class MusicPlayer(Static):
     def compose(self) -> ComposeResult:
         yield SongControlBar(id="song_control_bar")
         yield TrackList(id="track_list")
-        yield Static("Foo", id="status_bar")
+        yield Static("...", id="status_bar")
 
 
 def stripped_value_or_default(value: any, default: str) -> str:
