@@ -20,7 +20,7 @@ from rich_pixels import Pixels
 from PIL import Image, UnidentifiedImageError
 import rich
 
-from textual import on
+from textual import on, events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
@@ -575,14 +575,31 @@ class TrackScreen(Screen):
         Binding("right_square_bracket", "app.next_track", ">>"),
         Binding("c", "open_comment", "Comment"),
         Binding("p", "app.push_screen('now_playing')", "Now playing"),
+        Binding("0-5", "", "Rate ⭐"),
         Binding("ctrl+f", "focus_filter", "Filter"),
-        Binding("ctrl+x", "clear_filter", "Clear filter", show=False),
+        Binding("ctrl+x", "clear_filter", "Clear filter", show=True),
     ]
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
         yield MusicPlayer()
         yield Footer()
+
+    def on_key(self, event: events.Key) -> None:
+        current_song = music_app_instance.current_track
+        if re.match(r'[0-5]', event.key):
+            logger.info(f'Changing rate of song of {current_song} {event.key}')
+            set_rating(current_song, int(event.key))
+            track = music_app_instance.tracks.get(current_song)
+            # track.comment = comment
+            track.rating = int(event.key) * '⭐'
+            music_app_instance.update_track_list()
+            logger.info(f'Clearing cache')
+            get_mp3_track_list.cache_clear()
+
+    def action_change_rating(self, *args) -> None:
+        current_song = music_app_instance.current_track
+        logger.info(f'Changing rate of song of {current_song} {args}')
 
     def action_open_comment(self) -> None:
         self.app.push_screen(CommentScreen(music_app_instance.current_track))
