@@ -15,17 +15,29 @@ If anyone else found at this same spot - please feel free to try or enhance this
 The current main enhancements made to this project [bluematt/textual-musicplayer](https://github.com/bluematt/textual-musicplayer)
 
 :white_check_mark: Transition to [uv](https://docs.astral.sh/uv/) with advantages such as easier installation and locked dependencies
+
 :white_check_mark: Made into a command line tool with subcommands and `--help` 
+
 :white_check_mark: ​Replace id3-tag package from tinytag to eyeD3
+
 :white_check_mark: Star ⭐ rating based on ["POPULARIMETER"](https://id3.org/id3v2.3.0#Popularimeter) id3 tag as part of song list.
+
 :white_check_mark: Also comments and year added to song list
+
 :white_check_mark: Caching for speedup of large mp3 catalogs *(as it looks through all id3 tags)*
+
 :white_check_mark: Statusbar has been updated
+
 :white_check_mark: Verbose error handling such as display which mp3 files fails for whatever reason 
+
 :white_check_mark: More advanced search including comparison operators e.g. "> <1988 foo" to filter all songs rated more than 4 stars, older than 1988 and containing "foo" in artist, title or comment.
+
 :white_check_mark: Updated to Textual >=6.1.0
+
 :white_check_mark: Supports updating comment ID3-tag of tack (press "c")
+
 :white_check_mark: Update star rating (press 0-5)
+
 :white_check_mark: Copy current filtered MP3 tracks to a new path (press "y")
 
 
