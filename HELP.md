@@ -7,8 +7,8 @@ tTunes supports a number of keyboard shortcuts.
 ### Music control
 
 - `SPACE` - Play/pause music
-- `[` - Previous track
-- `]` - Next track
+- `,` - Previous track
+- `.` - Next track
 
 ### Interface
 
@@ -17,6 +17,9 @@ tTunes supports a number of keyboard shortcuts.
 - `Q` - Stop all playback
 - `O` - Open music browser
 - `P` - Show now playing (includes album artwork)
+-  C - Update MP3 comment
+-  0-5 - Update ⭐️ rating
+-  Y - Copy current filterred tracks to a new folder
 - `R` - Toggle playlist randomisation
 - `S` - Save a screenshot
 - `CTRL+F` - Focus filter
