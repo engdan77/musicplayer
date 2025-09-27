@@ -566,6 +566,25 @@ class CommentScreen(ModalScreen):
         self.app.pop_screen()
 
 
+class CopyPlaylistScreen(ModalScreen):
+    BINDINGS = [
+        Binding("escape", "pop_screen()", "Close comment", show=False),
+    ]
+
+    def __init__(self, song_paths: list[str]) -> None:
+        super().__init__()
+        self.song_paths = song_paths
+
+    def compose(self) -> ComposeResult:
+        yield Input(id="copy_to_path_input", value='', placeholder="Enter path to copy filtered songs to ...")
+
+    @on(Input.Submitted)
+    def accept_comment(self):
+        self.notify('Foo')
+        ...
+        # self.app.pop_screen()
+
+
 class TrackScreen(Screen):
     """Screen that displays the track list."""
 
@@ -574,6 +593,7 @@ class TrackScreen(Screen):
         Binding("left_square_bracket", "app.previous_track", "<<"),
         Binding("right_square_bracket", "app.next_track", ">>"),
         Binding("c", "open_comment", "Comment"),
+        Binding("o", "open_copy_filter", "Copy"),
         Binding("p", "app.push_screen('now_playing')", "Now playing"),
         Binding("0-5", "", "Rate ⭐"),
         Binding("ctrl+f", "focus_filter", "Filter"),
@@ -591,7 +611,6 @@ class TrackScreen(Screen):
             logger.info(f'Changing rate of song of {current_song} {event.key}')
             set_rating(current_song, int(event.key))
             track = music_app_instance.tracks.get(current_song)
-            # track.comment = comment
             track.rating = int(event.key) * '⭐'
             music_app_instance.update_track_list()
             logger.info(f'Clearing cache')
@@ -603,6 +622,12 @@ class TrackScreen(Screen):
 
     def action_open_comment(self) -> None:
         self.app.push_screen(CommentScreen(music_app_instance.current_track))
+
+    def action_open_copy_filter(self) -> None:
+        paths = list(music_app_instance.playlist)
+        if not paths:
+            return
+        self.app.push_screen(CopyPlaylistScreen(paths))
 
     def action_focus_filter(self) -> None:
         self.query_one("#filter", Input).focus()
@@ -675,11 +700,11 @@ class MusicPlayerApp(App):
     ]
 
     SCREENS = {
-        "help": HelpScreen(),
-        "browser": BrowserScreen(),
-        "tracks": TrackScreen(),
-        "now_playing": NowPlayingScreen(),
-        "comment": CommentScreen(),
+        "help": HelpScreen,
+        "browser": BrowserScreen,
+        "tracks": TrackScreen,
+        "now_playing": NowPlayingScreen,
+        "comment": CommentScreen,
     }
 
     process_dir = mp3_path.as_posix()

@@ -1,6 +1,6 @@
 [project]
 name = "musicplayer"
-version = "2025.9.5"
+version = "2025.10.1"
 description = "Simple music player"
 readme = "README.md"
 authors = [
@@ -8,16 +8,16 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "cyclopts>=3.22.2",
+    "cyclopts",
     "eyed3>=0.9.8",
-    "loguru>=0.7.3",
+    "loguru",
     "persist-cache>=0.4.4",
     "pillow==10.4.0",
     "platformdirs>=4.3.8",
     "pygame==2.6.1",
-    "rich==13.9.4",
-    "rich-pixels==2.2.0",
-    "textual[dev]==0.24.1",
+    "rich",
+    "rich-pixels",
+    "textual==6.1.0",
     "tinytag==1.10.1",
 ]
 
