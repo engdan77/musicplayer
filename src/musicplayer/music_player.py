@@ -20,7 +20,7 @@ from rich_pixels import Pixels
 from PIL import Image, UnidentifiedImageError
 import rich
 
-from textual import on, events
+from textual import on, events, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
@@ -36,6 +36,8 @@ from cyclopts import App as CliApp
 from cyclopts import Parameter, validators
 import datetime
 import re
+import time
+import asyncio
 
 FilterString = str
 SongString = str
@@ -266,6 +268,7 @@ class TrackList(DataTable):
 
 class Browser(DirectoryTree):
     def on_tree_node_selected(self, event: DirectoryTree.NodeSelected):
+        # TODO: Fix No nodes match 'DirectoryBrowser' on Screen(id='_default')
         self.app.query_one(DirectoryBrowser).directory = event.node.data
 
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
@@ -529,7 +532,7 @@ def set_rating(mp3_path: str, rating: int) -> None:
 
 class CommentScreen(ModalScreen):
     BINDINGS = [
-        Binding("escape", "pop_screen()", "Close comment", show=False),
+        Binding("escape", "app.pop_screen", "Close comment", show=False),
     ]
 
     def __init__(self, track_path: str = "") -> None:
@@ -568,7 +571,7 @@ class CommentScreen(ModalScreen):
 
 class CopyPlaylistScreen(ModalScreen):
     BINDINGS = [
-        Binding("escape", "pop_screen()", "Close comment", show=False),
+        Binding("escape", "app.pop_screen", "Close comment", show=False),
     ]
 
     def __init__(self, song_paths: list[str]) -> None:
@@ -577,12 +580,37 @@ class CopyPlaylistScreen(ModalScreen):
 
     def compose(self) -> ComposeResult:
         yield Input(id="copy_to_path_input", value='', placeholder="Enter path to copy filtered songs to ...")
+        yield ProgressBar()
+
+    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        ...  # Not required but kept for future use-case
+        # logger.info(f"Event: {event}")
+
+    @work(thread=True, exclusive=True)
+    def copy_files(self, progress_bar: ProgressBar, output_path: Path) -> None:
+        progress_bar.update(total=len(self.song_paths))
+        for f in self.song_paths:
+            mp3_filename = Path(f).name
+            output_file = Path(output_path) / mp3_filename
+            output_file.write_bytes(open(f, 'rb').read())
+            time.sleep(1)
+            progress_bar.advance(1)
+        self.notify('Done...')
+        self.app.pop_screen()
 
     @on(Input.Submitted)
-    def accept_comment(self):
-        self.notify('Foo')
-        ...
-        # self.app.pop_screen()
+    async def accept_comment(self):
+        output_path = Path(self.query_one(Input).value).expanduser().resolve()
+        success = False
+        if not output_path.parent.exists():
+            self.notify(f'Path "{output_path.parent.as_posix()}" does not exist', severity='warning')
+            return
+        if not output_path.exists():
+            output_path.mkdir(parents=True, exist_ok=True)
+            self.notify(f'Path "{output_path.as_posix()}" was created')
+        self.notify(f'Copying to "{output_path.as_posix()}"')
+        p = self.query_one(ProgressBar)
+        worker = self.copy_files(p, output_path)
 
 
 class TrackScreen(Screen):
@@ -590,10 +618,10 @@ class TrackScreen(Screen):
 
     BINDINGS = [
         Binding("space", "app.play_pause", "|>/||"),
-        Binding("left_square_bracket", "app.previous_track", "<<"),
-        Binding("right_square_bracket", "app.next_track", ">>"),
+        Binding("comma", "app.previous_track", "<<"),
+        Binding(".", "app.next_track", ">>"),
         Binding("c", "open_comment", "Comment"),
-        Binding("o", "open_copy_filter", "Copy"),
+        Binding("y", "open_copy_filter", "Copy"),
         Binding("p", "app.push_screen('now_playing')", "Now playing"),
         Binding("0-5", "", "Rate ⭐"),
         Binding("ctrl+f", "focus_filter", "Filter"),
@@ -656,8 +684,8 @@ class FilterInput(Input):
 
 class BrowserScreen(ModalScreen):
     BINDINGS = [
-        Binding("o", "pop_screen()", "Close browser"),
-        Binding("escape", "pop_screen()", "Close browser", show=False),
+        Binding("o", "app.pop_screen", "Close browser"),
+        Binding("escape", "app.pop_screen", "Close browser", show=False),
         Binding(".", "set_directory('.')", "Current"),
         Binding("~", "set_directory('~')", "Home"),
         Binding("/", "set_directory('/')", "Root"),
@@ -675,8 +703,8 @@ class BrowserScreen(ModalScreen):
 
 class HelpScreen(ModalScreen):
     BINDINGS = [
-        Binding("f1", "pop_screen()", "Close help"),
-        Binding("escape", "pop_screen()", "Close help", show=False),
+        Binding("f1", "app.pop_screen", "Close help"),
+        Binding("escape", "app.pop_screen", "Close help", show=False),
     ]
 
     def compose(self) -> ComposeResult:
@@ -936,6 +964,7 @@ class MusicPlayerApp(App):
         """
         self.update_track_information()
 
+        # TODO: Check why timer of track not updating with last Textual update
         if self.is_playing or self.is_paused:
             progress: float = get_playback_position()
             track: Track = self.get_current_track()
