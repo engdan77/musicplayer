@@ -2,6 +2,8 @@
 
 A simple *terminal based* music player (MP3, etc.) using [Textual](https://textual.textualize.io/).
 
+![MusicPlayer_2025-09-27T20_27_14_288885](https://raw.githubusercontent.com/engdan77/project_images/master/pics/MusicPlayer_2025-09-27T20_27_14_288885.svg)
+
 ## Background and reasoning
 
 I've been countless of times been cursing over how *MacOS Music* player treating star-rating (kept outside of mp3), and for some reason when there is a glitch with e.g. your NAS where you keep your files it suddenly loose the proper file location. And not only that but experience a sluggish experience 😫
