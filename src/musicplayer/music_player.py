@@ -342,7 +342,6 @@ class NowPlayingScreen(Screen):
             PlayerControls(id="playback_controls"),
             Static("󰒞", id="playback_status")
         )
-        # yield Static("", id="status_bar", disabled=True)
         yield Footer()
 
 
@@ -494,13 +493,21 @@ def get_new_search_song_strings_by_year(filter_string: str, song_string: str) ->
 
 
 @cache(dir=USER_CACHE_PATH)
-def get_mp3_track_list(files: list[str]) -> list[Track]:
+def get_mp3_track_details(file: str) -> Track:
+    """Return the track details of the track at `track_path`."""
+    return Track(eyed3.load(file))
+
+
+def get_mp3_track_list(files: list[str], status_bar: Static | None) -> list[Track]:
     """Return the list of tracks in the mp3 file and failed ones"""
     tracks: list[Track] = []
     failed_tracks: list[str] = []
     for idx, file in enumerate(files, start=1):
+        if status_bar:
+            status_bar.update(f'Loading track {idx} of {len(files)}')
         try:
-            tracks.append(Track(eyed3.load(file)))
+            track_details = get_mp3_track_details(file)
+            tracks.append(track_details)
         except (eyed3.Error, OSError) as e:
             logger.warning(f"Error loading track {file}: [{type(e)}] {e}")
             failed_tracks.append(file)
@@ -511,6 +518,7 @@ def get_mp3_track_list(files: list[str]) -> list[Track]:
         for t in failed_tracks:
             logger.error(f"  {t}")
         raise RuntimeError(message)
+    status_bar.update(f'{len(tracks)} tracks')
     return tracks
 
 
@@ -565,7 +573,7 @@ class CommentScreen(ModalScreen):
         track.comment = comment
         music_app_instance.update_track_list()
         logger.info(f'Clearing cache')
-        get_mp3_track_list.cache_clear()
+        get_mp3_track_details.cache_clear()
         self.app.pop_screen()
 
 
@@ -642,7 +650,7 @@ class TrackScreen(Screen):
             track.rating = int(event.key) * '⭐'
             music_app_instance.update_track_list()
             logger.info(f'Clearing cache')
-            get_mp3_track_list.cache_clear()
+            get_mp3_track_details.cache_clear()
 
     def action_change_rating(self, *args) -> None:
         current_song = music_app_instance.current_track
@@ -746,9 +754,6 @@ class MusicPlayerApp(App):
     # Timer to keep track of track progress.
     progress_timer: Timer = None
 
-    def watch_cwd(self) -> None:
-        self.refresh_tracks(mp3_path.as_posix())
-
     def watch_current_track(self) -> None:
         if self.is_playing:
             self.play()
@@ -757,13 +762,7 @@ class MusicPlayerApp(App):
         self.update_track_list()
 
     def update_initial_track_list(self) -> None:
-        self.refresh_tracks(mp3_path.as_posix())
-        try:
-            self.reset_current_track()
-        except IndexError:
-            self.set_status("No tracks found")
-            return
-        self.select_current_playing_track()
+        self.update_track_list_work()
 
     def please_wait(self):
         # TODO: Ugly workaround until figured out blocking "updating" not updating status row
@@ -802,6 +801,7 @@ class MusicPlayerApp(App):
 
     def reset_current_track(self):
         """Reset the current track to the first in the playlist."""
+        ...
         self.current_track = self.playlist[0]
 
     def filter_playlist(self, filter_str: str = ""):
@@ -837,31 +837,32 @@ class MusicPlayerApp(App):
         self.update_playlist(list(tracks.keys()))
         self.update_track_list()
 
-    def refresh_tracks(self, track_directory: str) -> None:
-        """Refresh the track list from the supplied directory."""
-        self.set_status(f"Loading track list from {mp3_path.as_posix()} (this may take a while)... Caching to {USER_CACHE_PATH} ...")
+    def reset_playlist(self):
+        """Reset the playlist based on the available tracks."""
+        self.update_playlist(self.tracks.keys())
+        self.update_track_list()
+
+    @work(thread=True, exclusive=True)
+    def update_track_list_work(self) -> None:
+        track_directory = mp3_path.as_posix()
+        tracks_screen = self.get_screen("tracks")
+        status_bar = tracks_screen.query_one('#status_bar')
         try:
             files = get_files_in_directory(track_directory)
-            self.set_tracks(files)
+            tracks = get_mp3_track_list(files, status_bar)
             self.reset_playlist()
-            self.reset_current_track()
+            # Removed
         except NotADirectoryError:
             self.set_status(f"{track_directory} is not a directory")
             return
         except FileNotFoundError:
             self.set_status(f"{track_directory} does not contain music")
             return
-
-    def reset_playlist(self):
-        """Reset the playlist based on the available tracks."""
-        self.update_playlist(self.tracks.keys())
-        self.update_track_list()
-
-    def set_tracks(self, files: list[str]) -> None:
-        """Set the list of available tracks from the list of files."""
-        tracks = get_mp3_track_list(files)
         self.tracks.clear()
         [self.tracks.update({TrackPath(files[idx]): track}) for idx, track in enumerate(tracks)]
+        self.update_playlist(files)
+        self.select_current_playing_track()
+        self.reset_current_track()
 
     def update_playlist(self, track_paths: list[TrackPath]) -> None:
         """Update the playlist by recreating it from track_path as a new deque."""
@@ -1068,7 +1069,6 @@ class MusicPlayerApp(App):
         """Update the status message for all status bar widgets."""
         for widget in self.query("#status_bar"):
             widget.update(message)
-            # widget.call_after_refresh(self.app.push_screen, "tracks")
 
 
 @cli_app.default()
@@ -1094,7 +1094,7 @@ def play(audio_path: Annotated[Path, Parameter(validator=validators.Path(exists=
 def clear_cache():
     """Clear the cache."""
     logger.info('Clearing cache...')
-    get_mp3_track_list.cache_clear()
+    get_mp3_track_details.cache_clear()
 
 
 @cli_app.command
