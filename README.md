@@ -2,7 +2,7 @@
 
 A simple *terminal based* music player (MP3, etc.) using [Textual](https://textual.textualize.io/).
 
-![MusicPlayer_2025-09-27T20_27_14_288885](https://raw.githubusercontent.com/engdan77/project_images/master/pics/MusicPlayer_2025-09-27T20_27_14_288885.svg)
+![MusicPlayer_2025-09-28T20_32_11_158220](https://raw.githubusercontent.com/engdan77/project_images/master/pics/MusicPlayer_2025-09-28T20_32_11_158220.svg)
 
 ## Background and reasoning
 
