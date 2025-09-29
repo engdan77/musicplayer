@@ -504,7 +504,7 @@ def get_mp3_track_list(files: list[str], status_bar: Static | None) -> list[Trac
     failed_tracks: list[str] = []
     for idx, file in enumerate(files, start=1):
         if status_bar:
-            status_bar.update(f'Loading track {idx} of {len(files)}')
+            status_bar.update(f'Loading track {idx} of {len(files)} ({idx+1/len(files):.0%})')
         try:
             track_details = get_mp3_track_details(file)
             tracks.append(track_details)
